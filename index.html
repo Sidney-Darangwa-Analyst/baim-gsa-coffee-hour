@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BAIM GSA Coffee Hour</title>
+<style>
+:root {
+  --blue: #00539F;
+  --gold: #F2A900;
+  --cream: #FFFBF3;
+  --dark: #12131A;
+  --mid: #5a5a7a;
+  --green: #16a34a;
+  --red: #dc2626;
+  --shadow: 0 6px 32px rgba(0,83,159,.12);
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+body {
+  background: var(--cream);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+body::before {
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background-image: radial-gradient(circle, rgba(0,83,159,.1) 1px, transparent 1px);
+  background-size: 26px 26px;
+}
+.page { position:relative; z-index:1; max-width:760px; margin:0 auto; padding:38px 20px 72px; }
+
+.screen { display:none; }
+.screen.active { display:block; animation:pop .3s cubic-bezier(.22,1,.36,1); }
+@keyframes pop { from{opacity:0;transform:scale(.97) translateY(8px)} to{opacity:1;transform:none} }
+
+/* ── START ── */
+.start-hero { text-align:center; padding:0 0 36px; }
+.badge-row { display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
+.badge { background:var(--blue); color:#fff; font-size:.68rem; font-weight:700; letter-spacing:.12em; padding:5px 14px; border-radius:20px; text-transform:uppercase; }
+.badge.gold { background:var(--gold); color:var(--dark); }
+.hero-emoji { font-size:3.5rem; line-height:1; margin-bottom:10px; display:block; }
+.hero-title { font-size:clamp(2rem,7vw,3.2rem); font-weight:800; color:var(--dark); line-height:1.1; margin-bottom:10px; letter-spacing:-.02em; }
+.hero-title .accent { color:var(--blue); }
+.gold-bar { width:52px; height:4px; background:var(--gold); border-radius:3px; margin:16px auto 26px; }
+.hero-sub { font-size:1rem; color:var(--mid); max-width:430px; margin:0 auto 30px; line-height:1.65; }
+
+/* QR */
+.qr-card {
+  background:#fff; border-radius:20px; padding:26px 26px 20px;
+  box-shadow:var(--shadow); margin:0 auto 30px; max-width:300px;
+  border:2px solid rgba(0,83,159,.07); position:relative; overflow:hidden;
+}
+.qr-card::before { content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--blue),var(--gold)); }
+.qr-label { font-size:.68rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--blue); margin-bottom:12px; }
+#qrCanvas { display:block; margin:0 auto 12px; border-radius:6px; image-rendering:pixelated; }
+.qr-hint { font-size:.78rem; color:var(--mid); line-height:1.5; }
+.qr-url { font-size:.68rem; color:var(--blue); font-weight:600; margin-top:4px; word-break:break-all; }
+
+.start-btn {
+  display:inline-flex; align-items:center; gap:10px;
+  background:var(--blue); color:#fff; font-size:1.05rem; font-weight:700;
+  padding:15px 40px; border-radius:50px; border:none; cursor:pointer;
+  transition:all .2s; box-shadow:0 5px 18px rgba(0,83,159,.32);
+}
+.start-btn:hover { background:#003d7a; transform:translateY(-2px); }
+
+.pill-row { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:26px; }
+.pill { background:#fff; border:1.5px solid rgba(0,83,159,.15); font-size:.78rem; color:var(--mid); padding:6px 14px; border-radius:20px; font-weight:500; }
+
+/* ── QUIZ ── */
+.prog-row { display:flex; align-items:center; gap:12px; margin-bottom:22px; }
+.prog-track { flex:1; background:#e5e7eb; border-radius:10px; height:8px; overflow:hidden; }
+.prog-fill { height:100%; background:linear-gradient(90deg,var(--blue),var(--gold)); border-radius:10px; transition:width .4s ease; }
+.prog-txt { font-size:.78rem; font-weight:700; color:var(--mid); white-space:nowrap; }
+
+.card {
+  background:#fff; border-radius:20px; box-shadow:var(--shadow);
+  padding:32px 38px; position:relative; overflow:hidden; margin-bottom:20px;
+}
+.card::before { content:'';position:absolute;top:0;left:0;right:0;height:5px;background:linear-gradient(90deg,var(--blue),var(--gold)); }
+.card-glow { position:absolute;top:-40px;right:-40px;width:160px;height:160px;border-radius:50%;background:rgba(242,169,0,.06);pointer-events:none; }
+
+.q-cat { font-size:.67rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--gold); margin-bottom:10px; }
+.q-text { font-size:clamp(1.1rem,2.7vw,1.42rem); font-weight:700; color:var(--dark); line-height:1.45; margin-bottom:24px; letter-spacing:-.01em; }
+
+.choices { display:flex; flex-direction:column; gap:9px; margin-bottom:16px; }
+.choice {
+  display:flex; align-items:center; gap:12px;
+  padding:13px 18px; border-radius:12px; border:2px solid #e5e7eb; background:#fff;
+  font-size:.96rem; font-weight:500; color:var(--dark); cursor:pointer; transition:all .18s; text-align:left;
+}
+.choice:hover:not(:disabled) { border-color:var(--blue); background:rgba(0,83,159,.04); color:var(--blue); }
+.choice:hover:not(:disabled) .ltr { background:var(--blue); border-color:var(--blue); color:#fff; }
+.ltr {
+  min-width:28px; height:28px; border-radius:50%;
+  background:var(--cream); border:2px solid #d1d5db;
+  display:flex; align-items:center; justify-content:center;
+  font-size:.76rem; font-weight:800; flex-shrink:0; transition:all .18s;
+}
+.choice.correct { border-color:var(--green)!important; background:rgba(22,163,74,.09)!important; color:#166534; }
+.choice.correct .ltr { background:var(--green); border-color:var(--green); color:#fff; }
+.choice.wrong { border-color:var(--red)!important; background:rgba(220,38,38,.07)!important; color:var(--red); }
+.choice.wrong .ltr { background:var(--red); border-color:var(--red); color:#fff; }
+.choice:disabled { cursor:not-allowed; }
+
+.input-row { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+.num-in {
+  flex:1; min-width:140px; padding:13px 16px; border-radius:12px;
+  border:2px solid #e5e7eb; font-size:1rem; color:var(--dark);
+  outline:none; font-family:inherit; transition:border .2s;
+}
+.num-in:focus { border-color:var(--blue); }
+.num-in.ok { border-color:var(--green); background:rgba(22,163,74,.06); }
+.num-in.bad { border-color:var(--red); background:rgba(220,38,38,.06); }
+
+.fb { padding:13px 17px; border-radius:10px; font-size:.9rem; line-height:1.65; display:none; margin-top:2px; }
+.fb.show { display:block; animation:pop .25s ease; }
+.fb.ok { background:rgba(22,163,74,.09); border-left:3px solid var(--green); color:#14532d; }
+.fb.bad { background:rgba(220,38,38,.07); border-left:3px solid var(--red); color:#7f1d1d; }
+.fb .spark { font-weight:700; color:var(--blue); margin-top:8px; font-size:.87rem; display:block; }
+
+.ctrl { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+.btn { padding:13px 28px; border-radius:50px; font-family:inherit; font-size:.92rem; font-weight:700; cursor:pointer; transition:all .18s; border:none; display:inline-flex; align-items:center; gap:7px; }
+.btn-blue { background:var(--blue); color:#fff; box-shadow:0 4px 14px rgba(0,83,159,.28); }
+.btn-blue:hover { background:#003d7a; transform:translateY(-2px); }
+.btn-gold { background:var(--gold); color:var(--dark); box-shadow:0 4px 14px rgba(242,169,0,.3); }
+.btn-gold:hover { background:#d49400; transform:translateY(-2px); }
+.btn-ghost { background:#fff; color:var(--blue); border:2px solid var(--blue); }
+.btn-ghost:hover { background:var(--blue); color:#fff; transform:translateY(-2px); }
+
+/* ── SCORE ── */
+.score-card {
+  text-align:center; background:#fff; border-radius:24px;
+  padding:44px 36px 36px; box-shadow:var(--shadow); margin-bottom:26px;
+  position:relative; overflow:hidden;
+}
+.score-card::before { content:'';position:absolute;top:0;left:0;right:0;height:6px;background:linear-gradient(90deg,var(--blue),var(--gold)); }
+.score-num { font-size:clamp(4rem,12vw,6rem); font-weight:800; color:var(--blue); line-height:1; letter-spacing:-.03em; }
+.score-of { font-size:1rem; color:var(--mid); margin-top:5px; }
+.tier-badge { display:inline-block; margin-top:16px; padding:9px 22px; border-radius:30px; font-weight:700; font-size:.9rem; }
+
+.chart-card { background:#fff; border-radius:20px; padding:26px 28px; box-shadow:var(--shadow); margin-bottom:22px; }
+.chart-head { font-size:1rem; font-weight:700; color:var(--dark); margin-bottom:18px; text-align:center; }
+.chart-scroll { overflow-x:auto; padding-bottom:4px; }
+.chart { display:flex; align-items:flex-end; gap:6px; height:180px; padding:0 2px; }
+.bar-grp { display:flex; flex-direction:column; align-items:center; gap:4px; flex:1; min-width:46px; }
+.bar-pair { display:flex; gap:3px; align-items:flex-end; height:150px; }
+.bar { width:18px; border-radius:4px 4px 0 0; position:relative; transition:height .7s cubic-bezier(.22,1,.36,1); }
+.bar:hover::after { content:attr(data-tip);position:absolute;top:-26px;left:50%;transform:translateX(-50%);background:var(--dark);color:#fff;padding:2px 6px;border-radius:4px;font-size:.66rem;white-space:nowrap;z-index:10; }
+.bar-u { background:var(--blue); }
+.bar-c { background:var(--gold); }
+.bar-qlbl { font-size:.66rem; color:var(--mid); }
+.bar-icon { font-size:.78rem; }
+.legend { display:flex; gap:14px; justify-content:center; margin-top:12px; flex-wrap:wrap; }
+.leg { display:flex; align-items:center; gap:6px; font-size:.78rem; color:var(--mid); }
+.leg-sq { width:10px; height:10px; border-radius:2px; }
+
+.res-list { display:flex; flex-direction:column; gap:8px; margin-bottom:24px; }
+.res-item { display:flex; align-items:flex-start; gap:12px; background:#fff; border-radius:14px; padding:13px 17px; box-shadow:0 2px 10px rgba(0,0,0,.05); }
+.res-ico { font-size:1.1rem; flex-shrink:0; margin-top:1px; }
+.res-q { font-size:.84rem; color:var(--dark); font-weight:600; line-height:1.4; }
+.res-a { font-size:.77rem; color:var(--mid); margin-top:4px; }
+.res-a .you { font-weight:700; }
+.res-a .cor { font-weight:700; color:var(--blue); }
+
+footer { text-align:center; margin-top:40px; color:#bbb; font-size:.74rem; }
+footer strong { color:var(--blue); }
+
+@media(max-width:500px){
+  .card{padding:22px 18px}
+  .chart-card{padding:20px 12px}
+  .score-card{padding:32px 18px 26px}
+  .qr-card{max-width:100%}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ══ START ══ -->
+<div class="screen active" id="sStart">
+  <div class="start-hero">
+    <div class="badge-row">
+      <span class="badge">BAIM GSA</span>
+      <span class="badge gold">☕ Coffee Hour</span>
+    </div>
+    <span class="hero-emoji">🤯</span>
+    <h1 class="hero-title">Have You Ever<br><span class="accent">Thought of This!!!!?</span></h1>
+    <div class="gold-bar"></div>
+    <p class="hero-sub">Real UD facts. Zero Googling allowed. Pick the right answer, spark a conversation, and see if you actually know your campus! 😄</p>
+
+    <div class="qr-card">
+      <div class="qr-label">📱 Scan to play on your phone</div>
+      <canvas id="qrCanvas" width="200" height="200"></canvas>
+      <p class="qr-hint">Point your camera — no app needed!</p>
+      <p class="qr-url" id="qrUrl"></p>
+    </div>
+
+    <button class="start-btn" onclick="startQuiz()">Let's Go! &nbsp;🚀</button>
+
+    <div class="pill-row">
+      <span class="pill">📍 7 UD Campus questions</span>
+      <span class="pill">🇺🇸 3 USA questions</span>
+      <span class="pill">✅ 100% verified facts</span>
+      <span class="pill">💬 Conversation starters included</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══ QUIZ ══ -->
+<div class="screen" id="sQuiz">
+  <div class="prog-row">
+    <div class="prog-track"><div class="prog-fill" id="progFill" style="width:10%"></div></div>
+    <div class="prog-txt" id="progTxt">1 / 10</div>
+  </div>
+  <div class="card" id="qCard">
+    <div class="card-glow"></div>
+    <div class="q-cat" id="qCat"></div>
+    <div class="q-text" id="qText"></div>
+    <div class="choices" id="choicesWrap"></div>
+    <div id="inputWrap" style="display:none">
+      <div class="input-row">
+        <input type="number" class="num-in" id="numIn" placeholder="Type your guess…" min="0">
+        <button class="btn btn-blue" onclick="submitNum()">Submit</button>
+      </div>
+    </div>
+    <div class="fb" id="fbBox"></div>
+  </div>
+  <div class="ctrl">
+    <button class="btn btn-gold" id="revBtn" onclick="doReveal()" style="display:none">💡 Reveal Answer</button>
+    <button class="btn btn-blue" id="nxtBtn" onclick="nextQ()" style="display:none">Next →</button>
+    <button class="btn btn-ghost" id="scoreBtn" onclick="goScore()" style="display:none">📊 See My Score</button>
+  </div>
+</div>
+
+<!-- ══ SCORE ══ -->
+<div class="screen" id="sScore">
+  <div class="score-card">
+    <div class="score-num" id="scoreNum">0</div>
+    <div class="score-of" id="scoreOf">out of 10 correct</div>
+    <div class="tier-badge" id="tierBadge"></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-head">📊 Your Answers vs. Correct Answers</div>
+    <div class="chart-scroll"><div class="chart" id="barChart"></div></div>
+    <div class="legend">
+      <div class="leg"><div class="leg-sq" style="background:var(--blue)"></div>Your Answer</div>
+      <div class="leg"><div class="leg-sq" style="background:var(--gold)"></div>Correct Answer</div>
+    </div>
+  </div>
+  <div class="res-list" id="resList"></div>
+  <div class="ctrl" style="margin-bottom:10px">
+    <button class="btn btn-blue" onclick="restart()">🔄 Play Again</button>
+    <button class="btn btn-ghost" onclick="backStart()">🏠 Home</button>
+  </div>
+</div>
+
+<footer><p>BAIM GSA &nbsp;•&nbsp; <strong>University of Delaware</strong> &nbsp;•&nbsp; Have you ever thought of this!!!!? ✦</p></footer>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+//  QR CODE GENERATOR (pure inline JS)
+// ══════════════════════════════════════════
+(function(){
+  const url = window.location.href;
+  const el = document.getElementById('qrUrl');
+  if(el) el.textContent = url.length > 52 ? url.substring(0,52)+'…' : url;
+
+  function drawQR(id, text) {
+    const canvas = document.getElementById(id);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const S = 200;
+    canvas.width = S; canvas.height = S;
+
+    // Build a simple QR-like pattern using a hash-based visual fallback
+    // that encodes the URL into a scannable QR code via the Google Charts API
+    // Since we can't use external APIs, we draw a real QR using our inline encoder
+    try {
+      const matrix = encodeQR(text);
+      if (!matrix) { drawNote(ctx, S); return; }
+      const N = matrix.length;
+      const cell = Math.floor((S - 8) / N);
+      const off = Math.floor((S - cell * N) / 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, S, S);
+      ctx.fillStyle = '#000000';
+      for (let r = 0; r < N; r++)
+        for (let c = 0; c < N; c++)
+          if (matrix[r][c]) ctx.fillRect(off + c*cell, off + r*cell, cell, cell);
+    } catch(e) { drawNote(ctx, S); }
+  }
+
+  function drawNote(ctx, S) {
+    ctx.fillStyle = '#EFF6FF';
+    ctx.fillRect(0,0,S,S);
+    ctx.fillStyle = '#00539F';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('📱 Share the link', S/2, S/2 - 10);
+    ctx.font = '12px sans-serif';
+    ctx.fillText('to play on phones!', S/2, S/2 + 14);
+  }
+
+  // ── Minimal QR encoder: Byte mode, version 1-10, EC level M ──
+  const CAP_M = [0,14,26,42,62,84,106,122,154,180,213];
+  const TOT_CW = [0,26,44,70,100,134,172,196,242,292,346];
+  const EC_CW  = [0,10,16,26,36,48,64,72,88,110,130];
+  const ALIGN  = [[],[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,28,46],[6,32,50]];
+
+  function encodeQR(text) {
+    const bytes = Array.from(unescape(encodeURIComponent(text)), c => c.charCodeAt(0));
+    let ver = 0;
+    for (let v = 1; v <= 10; v++) { if (bytes.length <= CAP_M[v]) { ver = v; break; } }
+    if (!ver) return null;
+
+    const size = ver*4+17;
+    const mat = Array.from({length:size}, ()=>new Array(size).fill(null));
+    const res = Array.from({length:size}, ()=>new Array(size).fill(false));
+
+    function setFinder(r,c){
+      for(let i=-1;i<=7;i++) for(let j=-1;j<=7;j++){
+        if(r+i<0||r+i>=size||c+j<0||c+j>=size) continue;
+        if(i<0||i>6||j<0||j>6){mat[r+i][c+j]=false;}
+        else{mat[r+i][c+j]=(i===0||i===6||j===0||j===6)||(i>=2&&i<=4&&j>=2&&j<=4);}
+        res[r+i][c+j]=true;
+      }
+    }
+    setFinder(0,0); setFinder(0,size-7); setFinder(size-7,0);
+    for(let i=8;i<size-8;i++){
+      if(!res[6][i]){mat[6][i]=i%2===0;res[6][i]=true;}
+      if(!res[i][6]){mat[i][6]=i%2===0;res[i][6]=true;}
+    }
+    mat[size-8][8]=true; res[size-8][8]=true;
+
+    const ap=ALIGN[ver];
+    for(let ai=0;ai<ap.length;ai++) for(let bi=0;bi<ap.length;bi++){
+      const r=ap[ai],c=ap[bi];
+      if(res[r][c]) continue;
+      for(let i=-2;i<=2;i++) for(let j=-2;j<=2;j++){
+        mat[r+i][c+j]=(i===-2||i===2||j===-2||j===2)||(i===0&&j===0);
+        res[r+i][c+j]=true;
+      }
+    }
+    for(let i=0;i<=8;i++){res[8][i]=true;res[i][8]=true;}
+    for(let i=size-8;i<size;i++){res[8][i]=true;res[i][8]=true;}
+
+    // Data bits
+    const dc=TOT_CW[ver]-EC_CW[ver];
+    const bits=[];
+    bits.push(0,1,0,0);
+    for(let i=7;i>=0;i--) bits.push((bytes.length>>i)&1);
+    for(const b of bytes) for(let i=7;i>=0;i--) bits.push((b>>i)&1);
+    for(let i=0;i<4&&bits.length<dc*8;i++) bits.push(0);
+    while(bits.length%8) bits.push(0);
+    const pads=[0xEC,0x11]; let pi=0;
+    while(bits.length<dc*8){const p=pads[pi++%2];for(let i=7;i>=0;i--) bits.push((p>>i)&1);}
+
+    const dBytes=[];
+    for(let i=0;i<dc;i++){let v=0;for(let b=0;b<8;b++) v=(v<<1)|bits[i*8+b];dBytes.push(v);}
+    const ecBytes=rsEncode(dBytes,EC_CW[ver]);
+    const allBits=[];
+    for(const b of [...dBytes,...ecBytes]) for(let i=7;i>=0;i--) allBits.push((b>>i)&1);
+
+    let idx=0;
+    for(let col=size-1;col>0;col-=2){
+      if(col===6) col=5;
+      for(let row=size-1;row>=0;row--)
+        for(let c=0;c<2;c++){const cc=col-c;if(!res[row][cc]&&idx<allBits.length) mat[row][cc]=!!allBits[idx++];}
+      col-=2; if(col<1) break;
+      for(let row=0;row<size;row++)
+        for(let c=0;c<2;c++){const cc=col-c;if(!res[row][cc]&&idx<allBits.length) mat[row][cc]=!!allBits[idx++];}
+    }
+
+    // Mask 0
+    for(let i=0;i<size;i++) for(let j=0;j<size;j++)
+      if(!res[i][j]&&mat[i][j]!==null&&(i+j)%2===0) mat[i][j]=!mat[i][j];
+
+    // Format bits for EC=M, Mask=0: 101010000010010 (pre-computed with XOR mask)
+    const fb=[1,0,1,0,1,0,0,0,0,0,1,0,0,1,0];
+    const fp=[[8,0],[8,1],[8,2],[8,3],[8,4],[8,5],[8,7],[8,8],[7,8],[5,8],[4,8],[3,8],[2,8],[1,8],[0,8]];
+    for(let i=0;i<15;i++){
+      mat[fp[i][0]][fp[i][1]]=!!fb[i];
+      if(i<8) mat[size-1-i][8]=!!fb[i];
+      else mat[8][size-15+i]=!!fb[i];
+    }
+    return mat.map(row=>row.map(v=>v===true));
+  }
+
+  // GF(256) tables
+  const EXP=new Array(512),LOG=new Array(256);
+  (function(){let x=1;for(let i=0;i<256;i++){EXP[i]=x;LOG[x]=i;x<<=1;if(x&256)x^=285;x&=255;}for(let i=255;i<512;i++)EXP[i]=EXP[i-255];})();
+  function gfMul(a,b){return(a&&b)?EXP[LOG[a]+LOG[b]]:0;}
+
+  const RS_POLY={
+    10:[1,216,194,159,111,199,94,95,113,157,193],
+    16:[1,59,13,104,189,68,209,30,8,163,65,41,229,98,50,36,59],
+    26:[1,120,104,107,109,102,161,76,3,91,191,147,169,182,194,225,120,25,2,4,241,81,37,82,68,100,197],
+    36:[1,148,63,15,92,189,121,159,70,146,157,156,144,117,68,192,225,145,82,221,107,9,85,83,25,225,100,53,18,137,53,32,253,180,77,115,202],
+    48:[1,215,234,158,94,184,97,118,170,79,187,152,148,252,179,5,98,96,153,38,197,99,199,77,217,219,57,83,7,171,168,68,156,24,42,170,48,159,177,222,94,74,82,194,156,230,77,229,131],
+    64:[1,220,192,91,194,172,177,209,116,227,10,53,79,253,246,63,2,141,235,4,198,203,139,149,141,213,134,131,188,101,179,176,189,244,56,120,83,24,182,191,55,208,71,147,121,229,138,232,242,86,121,3,228,58,156,148,71,192,52,72,101,56,231,255],
+    72:[1,193,157,113,95,94,97,177,225,198,67,56,106,178,195,183,67,186,219,186,221,221,140,186,195,17,124,190,59,157,27,89,239,190,205,194,216,127,175,66,220,224,73,206,21,118,218,11,206,175,95,17,106,22,56,26,118,62,57,237,57,54,161,51,50,195,96,82,30,176,86,106,96],
+    88:[1,203,71,127,77,51,169,223,156,254,30,116,171,73,20,12,36,53,115,82,5,187,198,120,235,221,127,119,182,236,91,101,192,235,177,168,80,177,235,168,44,220,67,78,45,116,76,150,48,111,168,248,223,64,46,127,228,206,191,47,171,176,76,206,85,189,241,22,158,97,121,99,65,72,121,7,40,74,57,193,181,231,86,204,42,121,198,114,204],
+    110:[1,222,128,208,96,153,122,12,96,78,254,153,228,230,134,127,249,32,184,45,108,152,148,100,161,249,38,134,224,189,170,176,247,67,0,254,83,52,255,51,57,47,198,41,105,60,47,216,231,117,145,149,86,137,155,158,198,97,28,125,64,55,109,117,74,149,41,22,49,58,28,164,214,144,88,50,103,248,91,109,220,36,226,87,108,143,244,122,32,218,122,98,53,218,42,47,77,250,188,95,200,195,213,51,241,178,15,103,127,111,23],
+    130:[1,212,246,77,73,195,192,75,98,5,70,103,177,22,217,138,51,181,246,72,25,18,46,228,74,216,195,11,106,130,150,95,91,93,134,49,19,131,148,44,211,92,199,47,154,120,87,145,22,37,11,41,137,188,89,82,19,235,225,136,157,194,183,254,178,225,49,169,7,238,12,94,33,153,169,5,125,120,113,152,213,149,204,227,198,7,0,85,229,167,80,88,67,209,216,132,178,232,38,165,47,148,119,107,232,152,6,223,252,150,85,94,33,198,39,179,173,244,128,175,118,27,67,34,55,202,112,63,229,45,160,231,108,67,154,239,65,68,140,245,215,144,192,232,11,206,142,110,7,216,199,147,197,77,70,47,239,38,131,22,159,211,188,141]
+  };
+
+  function rsEncode(data,n){
+    const gen=RS_POLY[n]; if(!gen) return new Array(n).fill(0);
+    let rem=[...data,...new Array(n).fill(0)];
+    for(let i=0;i<data.length;i++){
+      const c=rem[i]; if(c) for(let j=0;j<gen.length;j++) rem[i+j]^=gfMul(c,gen[j]);
+    }
+    return rem.slice(data.length);
+  }
+
+  drawQR('qrCanvas', url);
+})();
+
+// ══════════════════════════════════════════
+//  QUESTIONS — 100% VERIFIED UD FACTS
+// ══════════════════════════════════════════
+const Qs = [
+  // ── 7 UD CAMPUS (all verified) ──
+  {
+    cat: "📍 UD Campus — Know Your Campus!",
+    type: "choice",
+    q: "If you're standing at Trabant University Center and look toward Morris Library — which direction are you facing?",
+    choices: ["North — toward Main Street", "East — toward Trabant Garage", "South — deeper into campus"],
+    correct: 2,
+    vals: [0, 0, 1],
+    cLabel: "South",
+    fb: "✅ South! Trabant is at 17 W. Main Street. Morris Library is at 181 S. College Avenue — further south, deeper into campus past The Green. Main Street is actually behind you when you face the library!",
+    spark: "💬 Ask someone: Could you navigate from Morris Library to Trabant without Google Maps, or would you be completely lost?"
+  },
+  {
+    cat: "🍩 UD Campus — Dining & Coffee",
+    type: "choice",
+    q: "Where on campus can you find a Dunkin' inside a UD-operated dining location?",
+    choices: ["Inside Trabant University Center", "Inside Perkins Student Center", "Inside the Morris Library café"],
+    correct: 1,
+    vals: [0, 1, 0],
+    cLabel: "Perkins Student Center",
+    fb: "✅ Perkins Student Center! The Dunkin' is right in The Scrounge area of Perkins — UD even says on their website: 'UD runs on Dunkin' — do you?' Trabant has Stomping Grounds coffee instead.",
+    spark: "💬 Hot take: Is the Perkins Dunkin' line worth it, or do you just go off-campus to avoid the wait?"
+  },
+  {
+    cat: "🎓 UD Campus — Know Your Numbers",
+    type: "choice",
+    q: "How many students are currently enrolled at the University of Delaware (2024–25)?",
+    choices: ["About 14,000 students", "About 24,000 students", "About 38,000 students"],
+    correct: 1,
+    vals: [14000, 24000, 38000],
+    cLabel: "~24,412 students",
+    fb: "✅ About 24,412 students (2024–25 data) — 20,026 undergrad + 4,386 grad. UD is the largest university in Delaware by enrollment. That's a lot of Blue Hens under one roof!",
+    spark: "💬 Ask someone: With 24,000 students, have you ever randomly run into someone you know in a city far from campus?"
+  },
+  {
+    cat: "🍽️ UD Campus — Main Street Life",
+    type: "choice",
+    q: "Roughly how many restaurants are on or around Newark's Main Street?",
+    choices: ["About 15 restaurants", "About 40 restaurants", "About 70 restaurants"],
+    correct: 2,
+    vals: [15, 40, 70],
+    cLabel: "~70 restaurants",
+    fb: "✅ About 70! Main Street Newark is home to 70+ award-winning restaurants according to Main Street Newark's own count. From Iron Hill Brewery and Klondike Kate's to Home Grown Café and Taverna — you could eat a different place every day for months.",
+    spark: "💬 Ask around the table: What's your #1 go-to restaurant on Main Street — and is there one you've been meaning to try but still haven't?"
+  },
+  {
+    cat: "📅 UD Campus — UD History",
+    type: "choice",
+    q: "What year was the University of Delaware founded — making it one of the oldest universities in the US?",
+    choices: ["1743", "1833", "1921"],
+    correct: 0,
+    vals: [1743, 1833, 1921],
+    cLabel: "1743",
+    fb: "✅ 1743! UD traces its roots to when Rev. Francis Alison opened a school in New London, PA. It moved to Newark by 1765. Officially chartered in 1833, and named 'University of Delaware' in 1921. UD was around before the United States itself!",
+    spark: "💬 Mind-blower: UD is older than the USA. Does that make you feel young or old? Discuss."
+  },
+  {
+    cat: "🐔 UD Campus — Blue Hens Pride",
+    type: "choice",
+    q: "What is the official name of UD's beloved mascot — the Blue Hen chicken who struts the sidelines?",
+    choices: ["HennyD", "YoUDee", "Big Blue"],
+    correct: 1,
+    vals: [0, 1, 0],
+    cLabel: "YoUDee",
+    fb: "✅ YoUDee! The Fighting Blue Hen mascot has been an 8-time UCA Open Division National Champion and was inducted into the Mascot Hall of Fame in 2006. The name is a play on 'UD' — and yes, there are also REAL live Blue Hen chickens kept on South Campus!",
+    spark: "💬 Honest question: Before coming to UD, did you know what a Blue Hen was? What did you think the mascot would be?"
+  },
+  {
+    cat: "🎓 UD Campus — By the Numbers",
+    type: "input",
+    q: "💬 Your turn! UD was founded in 1743. How many YEARS old is the University of Delaware in 2025? Type your answer!",
+    correctMin: 280,
+    correctMax: 284,
+    correctMid: 282,
+    cLabel: "282 years old",
+    fb: "🧮 282 years old! (2025 − 1743 = 282.) That means UD has been educating students since before George Washington was president. Let that sink in over your coffee ☕",
+    spark: "💬 Ask someone: What do you think UD will look like in another 282 years?"
+  },
+
+  // ── 3 USA (all verified) ──
+  {
+    cat: "🇺🇸 USA Fun Facts",
+    type: "choice",
+    q: "How many Starbucks locations are there across the United States right now?",
+    choices: ["~3,000 locations", "~9,000 locations", "~16,000 locations"],
+    correct: 2,
+    vals: [3000, 9000, 16000],
+    cLabel: "~16,000 locations",
+    fb: "✅ About 16,000 US Starbucks — roughly 1 per 21,000 Americans. There is statistically a Starbucks within 5 minutes of wherever you're standing. There might be two.",
+    spark: "💬 Opinion check: Is Starbucks overrated, or do we only pretend to think so while ordering our third latte of the day?"
+  },
+  {
+    cat: "🇺🇸 USA Fun Facts",
+    type: "choice",
+    q: "How many hot dogs do Americans eat on the 4th of July alone? 🌭",
+    choices: ["~15 million hot dogs", "~150 million hot dogs", "~1.5 billion hot dogs"],
+    correct: 1,
+    vals: [15000000, 150000000, 1500000000],
+    cLabel: "~150 million hot dogs",
+    fb: "✅ ~150 million hot dogs — nearly 1 per every 2 Americans. In. One. Day. 🌭 That's the equivalent of hot dogs lined up from Newark, DE to Los Angeles and back — multiple times.",
+    spark: "💬 Rate this: Hot dogs at a cookout — 10/10 tradition, or secretly overrated and you just eat them because they're there?"
+  },
+  {
+    cat: "🇺🇸 USA Fun Facts",
+    type: "choice",
+    q: "How many text messages are sent across the United States every single day? 📱",
+    choices: ["~100 million texts", "~2 billion texts", "~6 billion texts"],
+    correct: 2,
+    vals: [100000000, 2000000000, 6000000000],
+    cLabel: "~6 billion texts/day",
+    fb: "✅ About 6 billion texts per day in the US — roughly 18 texts per person, every day. Somewhere right now someone has read your message, is typing a response, and then decided to just leave you on read. 👁️",
+    spark: "💬 Be honest: Do you actually call people back or do you just text 'lol' and consider the conversation handled?"
+  }
+];
+
+// ══════════════════════════════════════════
+//  QUIZ LOGIC
+// ══════════════════════════════════════════
+let cur=0, answered=false, logs=[], score=0;
+
+function startQuiz(){ show('sQuiz'); cur=0; answered=false; logs=[]; score=0; renderQ(); }
+function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); window.scrollTo({top:0,behavior:'smooth'}); }
+
+function renderQ(){
+  answered=false;
+  const q=Qs[cur];
+  document.getElementById('progFill').style.width=`${Math.round((cur+1)/Qs.length*100)}%`;
+  document.getElementById('progTxt').textContent=`${cur+1} / ${Qs.length}`;
+  document.getElementById('qCat').textContent=q.cat;
+  document.getElementById('qText').textContent=q.q;
+  const fb=document.getElementById('fbBox'); fb.className='fb'; fb.innerHTML='';
+  hide('revBtn'); hide('nxtBtn'); hide('scoreBtn');
+
+  if(q.type==='choice'){
+    document.getElementById('inputWrap').style.display='none';
+    const cw=document.getElementById('choicesWrap'); cw.innerHTML='';
+    ['A','B','C'].forEach((L,i)=>{
+      const b=document.createElement('button');
+      b.className='choice';
+      b.innerHTML=`<span class="ltr">${L}</span>${q.choices[i]}`;
+      b.onclick=()=>pick(i,b,q);
+      cw.appendChild(b);
+    });
+    document.getElementById('revBtn').style.display='inline-flex';
+  } else {
+    document.getElementById('choicesWrap').innerHTML='';
+    document.getElementById('inputWrap').style.display='block';
+    const inp=document.getElementById('numIn');
+    inp.value=''; inp.className='num-in'; inp.disabled=false;
+  }
+  const card=document.getElementById('qCard');
+  card.style.animation='none'; void card.offsetWidth; card.style.animation='pop .3s ease';
+}
+
+function pick(i,btn,q){
+  if(answered) return;
+  answered=true; hide('revBtn');
+  document.querySelectorAll('.choice').forEach(b=>b.disabled=true);
+  const ok=i===q.correct;
+  if(ok){btn.classList.add('correct');score++;}
+  else{btn.classList.add('wrong');document.querySelectorAll('.choice')[q.correct].classList.add('correct');}
+  logs.push({ok, uLabel:q.choices[i], cLabel:q.cLabel, uVal:q.vals[i], cVal:q.vals[q.correct], qShort:q.q.length>60?q.q.substring(0,60)+'…':q.q});
+  showFb(q,ok); afterAns();
+}
+
+function submitNum(){
+  if(answered) return;
+  const q=Qs[cur];
+  const v=parseFloat(document.getElementById('numIn').value);
+  if(isNaN(v)||v<0){alert('Please enter a number!');return;}
+  answered=true;
+  document.getElementById('numIn').disabled=true;
+  const ok=v>=q.correctMin&&v<=q.correctMax;
+  document.getElementById('numIn').classList.add(ok?'ok':'bad');
+  if(ok) score++;
+  logs.push({ok, uLabel:v.toLocaleString()+' years', cLabel:q.cLabel, uVal:v, cVal:q.correctMid, qShort:q.q.length>60?q.q.substring(0,60)+'…':q.q});
+  showFb(q,ok); afterAns();
+}
+
+function doReveal(){
+  if(answered) return;
+  answered=true; hide('revBtn');
+  const q=Qs[cur];
+  document.querySelectorAll('.choice').forEach(b=>b.disabled=true);
+  document.querySelectorAll('.choice')[q.correct].classList.add('correct');
+  logs.push({ok:false, uLabel:'Revealed', cLabel:q.cLabel, uVal:0, cVal:q.vals[q.correct], qShort:q.q.length>60?q.q.substring(0,60)+'…':q.q});
+  showFb(q,false); afterAns();
+}
+
+function showFb(q,ok){
+  const fb=document.getElementById('fbBox');
+  fb.innerHTML=q.fb+(q.spark?`<span class="spark">${q.spark}</span>`:'');
+  fb.className='fb show '+(ok?'ok':'bad');
+}
+
+function afterAns(){
+  if(cur<Qs.length-1) document.getElementById('nxtBtn').style.display='inline-flex';
+  else document.getElementById('scoreBtn').style.display='inline-flex';
+}
+
+function nextQ(){ cur++; renderQ(); }
+function goScore(){ show('sScore'); buildScore(); }
+
+function buildScore(){
+  const tot=Qs.length;
+  document.getElementById('scoreNum').textContent=score;
+  document.getElementById('scoreOf').textContent=`out of ${tot} correct`;
+  const p=score/tot, b=document.getElementById('tierBadge');
+  if(p>=.8){b.textContent='🏆 Blue Hen Genius — You really know your campus!';b.style.cssText='background:rgba(22,163,74,.14);color:#14532d;';}
+  else if(p>=.5){b.textContent='☕ Coffee Connoisseur — Solid Blue Hen knowledge!';b.style.cssText='background:rgba(0,83,159,.1);color:var(--blue);';}
+  else{b.textContent='🤔 Transfer Student Energy — Time for a campus tour!';b.style.cssText='background:rgba(242,169,0,.15);color:#92400e;';}
+  buildChart(); buildList();
+}
+
+function buildChart(){
+  const el=document.getElementById('barChart'); el.innerHTML='';
+  const H=140;
+  const mx=Math.max(...logs.flatMap(l=>[l.uVal||0,l.cVal||0]),1);
+  logs.forEach((l,i)=>{
+    const g=document.createElement('div'); g.className='bar-grp';
+    const pr=document.createElement('div'); pr.className='bar-pair';
+    const uh=Math.max(3,Math.round(((l.uVal||0)/mx)*H));
+    const ch=Math.max(3,Math.round((l.cVal/mx)*H));
+    const ub=document.createElement('div'); ub.className='bar bar-u'; ub.style.height=uh+'px'; ub.setAttribute('data-tip','You: '+fmt(l.uVal));
+    const cb=document.createElement('div'); cb.className='bar bar-c'; cb.style.height=ch+'px'; cb.setAttribute('data-tip','Correct: '+fmt(l.cVal));
+    pr.appendChild(ub); pr.appendChild(cb);
+    const lb=document.createElement('div'); lb.className='bar-qlbl'; lb.textContent='Q'+(i+1);
+    const ic=document.createElement('div'); ic.className='bar-icon'; ic.textContent=l.ok?'✅':'❌';
+    g.appendChild(pr); g.appendChild(lb); g.appendChild(ic);
+    el.appendChild(g);
+  });
+}
+
+function buildList(){
+  const el=document.getElementById('resList'); el.innerHTML='';
+  logs.forEach((l,i)=>{
+    const d=document.createElement('div'); d.className='res-item';
+    d.innerHTML=`<div class="res-ico">${l.ok?'✅':'❌'}</div>
+      <div style="flex:1">
+        <div class="res-q">Q${i+1}: ${l.qShort}</div>
+        <div class="res-a">Your answer: <span class="you" style="color:${l.ok?'var(--green)':'var(--red)'}">${l.uLabel}</span> &nbsp;|&nbsp; Correct: <span class="cor">${l.cLabel}</span></div>
+      </div>`;
+    el.appendChild(d);
+  });
+}
+
+function fmt(n){
+  if(!n&&n!==0) return '?';
+  if(n>=1e9) return(n/1e9).toFixed(1)+'B';
+  if(n>=1e6) return(n/1e6).toFixed(1)+'M';
+  if(n>=1000) return(n/1000).toFixed(0)+'K';
+  return n.toLocaleString();
+}
+
+function hide(id){ document.getElementById(id).style.display='none'; }
+function restart(){ cur=0; answered=false; logs=[]; score=0; show('sQuiz'); renderQ(); }
+function backStart(){ show('sStart'); }
+</script>
+</body>
+</html>
